@@ -5,12 +5,12 @@ app = Flask(__name__)
 app.secret_key = "mujerlindacats"
 
 def obtener_conexion():
-    
-    conexion = sqlite3.connect('rifa.db')
+
+    conexion = sqlite3.connect('/var/data/rifa.db')
 
     conexion.row_factory = sqlite3.Row
 
-    return conexion    
+    return conexion   
 
 @app.route('/')
 def inicio():
