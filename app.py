@@ -1,25 +1,47 @@
 from flask import Flask, render_template, request, redirect, flash
-import json
+import sqlite3, re
 
 app = Flask(__name__)
 app.secret_key = "mujerlindacats"
 
-def cargar_datos():
-    with open('numeros.json', 'r', encoding='utf-8') as archivo:
-        return json.load(archivo)
+def obtener_conexion():
     
-def guardar_datos(datos):
-    with open('numeros.json', 'w', encoding='utf-8') as archivo:
-        json.dump(datos, archivo, indent=4)
+    conexion = sqlite3.connect('rifa.db')
+
+    conexion.row_factory = sqlite3.Row
+
+    return conexion    
 
 @app.route('/')
 def inicio():
 
-    datos = cargar_datos()
+    conexion = obtener_conexion()
 
-    vendidos = sum(1 for info in datos.values() if info["estado"] == 1)
-    disponibles = sum(1 for info in datos.values() if info["estado"] == 0)
-    pagados = sum(1 for info in datos.values() if info["pago"] == 1)
+    cursor = conexion.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM numeros
+        WHERE estado = 1
+    """)
+    vendidos = cursor.fetchone()[0]
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM numeros
+        WHERE estado = 0
+    """)
+    disponibles = cursor.fetchone()[0]
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM numeros
+        WHERE pago = 1
+    """)
+    pagados = cursor.fetchone()[0]
+
+    conexion.close()
+
     pendientes = vendidos - pagados
 
     VALOR_BOLETA = 10000
@@ -45,33 +67,66 @@ def vender():
 
     if request.method == 'POST':
 
-        numero = request.form['numero']
+        numero = request.form['numero'].strip()
         nombre = request.form['nombre']
         telefono = request.form['telefono']
         correo = request.form['correo']
         pago = int(request.form['pago'])
 
-        datos = cargar_datos()
+        try:
+            numero = int(numero)
+        except:
+            flash(
+                '❌ Número inválido.',
+                'danger'
+            )
+            return redirect('/vender')
 
-        if numero in datos and datos[numero]["estado"] == 0:
+        conexion = obtener_conexion()
 
-            datos[numero]["estado"] = 1
-            datos[numero]["nombre"] = nombre
-            datos[numero]["telefono"] = telefono
-            datos[numero]["correo"] = correo
-            datos[numero]["pago"] = pago
+        cursor = conexion.cursor()
 
-            guardar_datos(datos)
+        cursor.execute("""
+            SELECT estado
+            FROM numeros
+            WHERE numero = ?
+        """, (numero,))
+
+        registro = cursor.fetchone()
+
+        if registro and registro["estado"] == 0:
+
+            cursor.execute("""
+                UPDATE numeros
+                SET
+                    estado = 1,
+                    nombre = ?,
+                    telefono = ?,
+                    correo = ?,
+                    pago = ?
+                WHERE numero = ?
+            """, (
+                nombre,
+                telefono,
+                correo,
+                pago,
+                numero
+            ))
+
+            conexion.commit()
+            conexion.close()
 
             flash(
-                f'✅ Boleta {numero} vendida correctamente a {nombre}.',
+                f'✅ Boleta {str(numero).zfill(3)} vendida correctamente a {nombre}.',
                 'success'
             )
 
             return redirect('/vender')
 
+        conexion.close()
+
         flash(
-            f'❌ La boleta {numero} ya fue vendida o no existe.',
+            f'❌ La boleta {str(numero).zfill(3)} ya fue vendida o no existe.',
             'danger'
         )
 
@@ -88,9 +143,10 @@ def venta_multiple():
         correo = request.form['correo']
         pago = int(request.form['pago'])
 
-        datos = cargar_datos()
+        lista_numeros = re.split(r'[\n,]+', numeros)
 
-        lista_numeros = numeros.split(',')
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
 
         vendidos = []
         no_vendidos = []
@@ -100,26 +156,45 @@ def venta_multiple():
             numero = numero.strip()
 
             try:
-                numero = str(int(numero))
+                numero_int = int(numero)
             except:
                 no_vendidos.append(numero)
                 continue
 
-            if numero in datos and datos[numero]["estado"] == 0:
+            cursor.execute("""
+                SELECT estado
+                FROM numeros
+                WHERE numero = ?
+            """, (numero_int,))
 
-                datos[numero]["estado"] = 1
-                datos[numero]["nombre"] = nombre
-                datos[numero]["telefono"] = telefono
-                datos[numero]["correo"] = correo
-                datos[numero]["pago"] = pago
+            registro = cursor.fetchone()
+            if registro and registro["estado"] == 0:
+                
+                cursor.execute("""
+                    UPDATE numeros
+                    SET
+                        estado = 1,
+                        nombre = ?,
+                        telefono = ?,
+                        correo = ?,
+                        pago = ?
+                    WHERE numero = ?
+                """, (
+                    nombre,
+                    telefono,
+                    correo,
+                    pago,
+                    numero_int
+                ))
 
-                vendidos.append(numero.zfill(3))
+                vendidos.append(str(numero_int).zfill(3))
 
             else:
 
-                no_vendidos.append(numero.zfill(3))
+                no_vendidos.append(str(numero_int).zfill(3))
 
-        guardar_datos(datos)
+        conexion.commit()
+        conexion.close()
 
         if vendidos:
 
@@ -148,28 +223,36 @@ def buscar():
 
         nombre_buscado = request.form['nombre'].strip().lower()
 
-        datos = cargar_datos()
+        conexion = obtener_conexion()
 
-        for numero, info in datos.items():
+        cursor = conexion.cursor()
 
-            if (
-                info["estado"] == 1
-                and nombre_buscado in info["nombre"].lower()
-            ):
+        cursor.execute("""
+            SELECT *
+            FROM numeros
+            WHERE estado = 1
+            AND LOWER(nombre) LIKE ?
+        """, (f'%{nombre_buscado}%',))
 
-                resultados.append({
-                    "numero": numero.zfill(3),
-                    "nombre": info["nombre"],
-                    "telefono": info["telefono"],
-                    "correo": info["correo"],
-                    "pago": "Sí" if info["pago"] == 1 else "No"
-                })
+        registros = cursor.fetchall()
+
+        conexion.close()
+
+        for registro in registros:
+
+            resultados.append({
+                "numero": str(registro["numero"]).zfill(3),
+                "nombre": registro["nombre"],
+                "telefono": registro["telefono"],
+                "correo": registro["correo"],
+                "pago": "Sí" if registro["pago"] == 1 else "No"
+            })
 
     return render_template(
-    'buscar.html',
-    resultados=resultados,
-    busqueda_realizada=request.method == 'POST'
-)
+        'buscar.html',
+        resultados=resultados,
+        busqueda_realizada=request.method == 'POST'
+    )
 
 @app.route('/anular', methods=['GET', 'POST'])
 def anular():
@@ -180,32 +263,48 @@ def anular():
 
         numeros = request.form['numeros']
 
-        datos = cargar_datos()
-
         lista_numeros = numeros.split(',')
+
+        conexion = obtener_conexion()
+
+        cursor = conexion.cursor()
 
         for numero in lista_numeros:
 
             numero = numero.strip()
 
             try:
-                numero = str(int(numero))
+                numero = int(numero)
             except:
                 continue
 
-            if numero in datos and datos[numero]["estado"] == 1:
+            cursor.execute("""
+                SELECT estado
+                FROM numeros
+                WHERE numero = ?
+            """, (numero,))
 
-                datos[numero] = {
-                    "estado": 0,
-                    "nombre": "",
-                    "telefono": "",
-                    "correo": "",
-                    "pago": 0
-                }
+            registro = cursor.fetchone()
 
-                anuladas.append(numero.zfill(3))
+            if registro and registro["estado"] == 1:
 
-        guardar_datos(datos)
+                cursor.execute("""
+                    UPDATE numeros
+                    SET
+                        estado = 0,
+                        nombre = '',
+                        telefono = '',
+                        correo = '',
+                        pago = 0
+                    WHERE numero = ?
+                """, (numero,))
+
+                anuladas.append(
+                    str(numero).zfill(3)
+                )
+
+        conexion.commit()
+        conexion.close()
 
         if len(anuladas) > 0:
 
@@ -229,20 +328,32 @@ def anular():
 @app.route('/pendientes')
 def pendientes():
 
-    datos = cargar_datos()
+    conexion = obtener_conexion()
+
+    cursor = conexion.cursor()
+
+    cursor.execute("""
+        SELECT numero, nombre, telefono, correo
+        FROM numeros
+        WHERE estado = 1
+        AND pago = 0
+        ORDER BY numero
+    """)
+
+    registros = cursor.fetchall()
+
+    conexion.close()
 
     lista_pendientes = []
 
-    for numero, info in datos.items():
+    for registro in registros:
 
-        if info["estado"] == 1 and info["pago"] == 0:
-
-            lista_pendientes.append({
-                "numero": numero.zfill(3),
-                "nombre": info["nombre"],
-                "telefono": info["telefono"],
-                "correo": info["correo"]
-            })
+        lista_pendientes.append({
+            "numero": str(registro["numero"]).zfill(3),
+            "nombre": registro["nombre"],
+            "telefono": registro["telefono"],
+            "correo": registro["correo"]
+        })
 
     return render_template(
         'pendientes.html',
@@ -252,22 +363,37 @@ def pendientes():
 @app.route('/disponibles')
 def disponibles():
 
-    datos = cargar_datos()
+    conexion = obtener_conexion()
+
+    cursor = conexion.cursor()
+
+    cursor.execute("""
+        SELECT numero
+        FROM numeros
+        WHERE estado = 0
+        ORDER BY numero
+    """)
+
+    registros = cursor.fetchall()
+
+    conexion.close()
 
     lista_disponibles = []
 
-    for numero, info in datos.items():
+    for registro in registros:
 
-        if info["estado"] == 0:
-
-            lista_disponibles.append(numero.zfill(3))
-
-    lista_disponibles.sort()
+        lista_disponibles.append(
+            str(registro["numero"]).zfill(3)
+        )
 
     lineas = []
 
     for i in range(0, len(lista_disponibles), 10):
-        linea = " - ".join(lista_disponibles[i:i+10])
+
+        linea = " - ".join(
+            lista_disponibles[i:i+10]
+        )
+
         lineas.append(linea)
 
     texto_disponibles = "\n".join(lineas)
@@ -288,41 +414,62 @@ def marcar_pagado():
         numero = request.form['numero'].strip()
 
         try:
-            numero = str(int(numero))
+            numero = int(numero)
         except:
-            mensaje = "Número inválido."
+            mensaje = "❌ Número inválido."
+
             return render_template(
                 'marcar_pagado.html',
                 mensaje=mensaje
             )
 
-        datos = cargar_datos()
+        conexion = obtener_conexion()
 
-        if numero in datos:
+        cursor = conexion.cursor()
 
-            if datos[numero]["estado"] == 1:
-                
-                if datos[numero]["pago"] == 0:
+        cursor.execute("""
+            SELECT estado, pago
+            FROM numeros
+            WHERE numero = ?
+        """, (numero,))
 
-                    datos[numero]["pago"] = 1
+        registro = cursor.fetchone()
 
-                    guardar_datos(datos)
+        if registro:
+
+            if registro["estado"] == 1:
+
+                if registro["pago"] == 0:
+
+                    cursor.execute("""
+                        UPDATE numeros
+                        SET pago = 1
+                        WHERE numero = ?
+                    """, (numero,))
+
+                    conexion.commit()
 
                     mensaje = (
-                        f"✅ La boleta {numero.zfill(3)} "
+                        f"✅ La boleta {str(numero).zfill(3)} "
                         "fue marcada como pagada."
                     )
 
                 else:
 
                     mensaje = (
-                        f"⚠️ La boleta {numero.zfill(3)} "
+                        f"⚠️ La boleta {str(numero).zfill(3)} "
                         "ya estaba pagada."
                     )
+
+            else:
+
+                mensaje = "❌ La boleta no está vendida."
 
         else:
 
             mensaje = "❌ La boleta no existe."
+
+        conexion.close()
 
     return render_template(
         'marcar_pagado.html',
@@ -330,5 +477,4 @@ def marcar_pagado():
     )
 
 if __name__ == '__main__':
-    ##app.run(debug=True)
-    app.run()
+    app.run(host='0.0.0.0')
