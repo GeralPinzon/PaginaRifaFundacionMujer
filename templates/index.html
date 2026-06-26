@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<div class="mb-4">
+
+    <h1 class="fw-bold">
+        🐾 Fundación Mujer Linda Cats
+    </h1>
+
+    <p class="text-muted mb-0">
+        Sistema de gestión de rifas
+    </p>
+
+</div>
+
+<div class="row">
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-center shadow border-0 bg-primary text-white">
+            <div class="card-body">
+                <div style="font-size:40px;">
+                    🎟️
+                </div>
+                <h5>Vendidos</h5>
+                <h2 class="display-4 fw-bold">
+                    {{ vendidos }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-center shadow border-0 bg-warning">
+            <div class="card-body">
+                <div style="font-size:40px;">
+                    📦
+                </div>
+                <h5>Disponibles</h5>
+                <h2 class="display-4 fw-bold">
+                    {{ disponibles }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-center shadow border-0 bg-success text-white">
+            <div class="card-body">
+                <div style="font-size:40px;">
+                    ✅
+                </div>
+                <h5>Pagados</h5>
+                <h2 class="display-4 fw-bold">
+                    {{ pagados }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-center shadow border-0 bg-danger text-white">
+            <div class="card-body">
+                <div style="font-size:40px;">
+                    💰
+                </div>
+                <h5>Pendientes</h5>
+                <h2 class="display-4 fw-bold">
+                    {{ pendientes }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="row mt-4">
+
+    <div class="col-md-6 mb-3">
+        <div class="card shadow border-0"
+     style="background:#f8f9fa">
+            <div class="card-body text-center">
+                <h5>💵 recaudado</h5>
+                <h2>
+                    ${{ "{:,.0f}".format(recaudado) }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <h5>💸 pendiente por Cobrar</h5>
+                <h2>
+                    ${{ "{:,.0f}".format(pendiente_cobro) }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="card shadow mt-3">
+
+    <div class="card-body">
+
+        <h5>📈 Avance de la Rifa</h5>
+
+        <div class="progress" style="height:30px;">
+
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                 role="progressbar"
+                 style="width: {{ porcentaje }}%;">
+
+                {{ porcentaje }}%
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+<div class="mt-4">
+
+    <h4 class="mb-3">
+        ⚡ Acciones rápidas
+    </h4>
+
+    <div class="row">
+
+        <div class="col-md-3 mb-3">
+            <a href="/vender" class="btn btn-primary w-100 p-3">
+                🎟️ Vender Boleta
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a href="/venta_multiple" class="btn btn-success w-100 p-3">
+                🎟️ Venta Múltiple
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a href="/buscar" class="btn btn-info w-100 p-3">
+                🔍 Buscar
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a href="/marcar_pagado" class="btn btn-dark w-100 p-3">
+                ✅ Marcar Pagado
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

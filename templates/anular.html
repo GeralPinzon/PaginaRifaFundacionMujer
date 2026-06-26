@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<div class="row justify-content-center">
+
+    <div class="col-md-8">
+
+        <div class="card shadow border-0">
+
+            <div class="card-header bg-danger text-white">
+
+                <h3 class="mb-0">
+                    ❌ Anular Boletas
+                </h3>
+
+            </div>
+
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+
+                        {% for category, message in messages %}
+
+                            <div class="alert alert-{{ category }}">
+
+                                {{ message }}
+
+                            </div>
+
+                        {% endfor %}
+
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Números separados por comas
+
+                        </label>
+
+                        <textarea
+                            name="numeros"
+                            class="form-control"
+                            rows="6"
+                            placeholder="001,002,003,004"
+                            required></textarea>
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger">
+
+                        ❌ Anular Boletas
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+        {% if anuladas %}
+
+        <div class="card shadow border-0 mt-4">
+
+            <div class="card-header bg-success text-white">
+
+                <h5 class="mb-0">
+
+                    ✅ Boletas Anuladas
+
+                </h5>
+
+            </div>
+
+            <div class="card-body">
+
+                <p>
+
+                    Total anuladas:
+                    <span class="badge bg-success">
+                        {{ anuladas|length }}
+                    </span>
+
+                </p>
+
+                <div class="row">
+
+                    {% for numero in anuladas %}
+
+                    <div class="col-md-2 mb-2">
+
+                        <span class="badge bg-success fs-6 w-100">
+
+                            {{ numero }}
+
+                        </span>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

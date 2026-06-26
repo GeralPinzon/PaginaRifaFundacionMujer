@@ -1,5 +1,20 @@
 import json
 
+def reanuadar_venta(datos):
+
+    for dato in datos:
+        if datos[dato]["estado"] == 1:
+            datos[dato] = {
+                "estado": 0,
+                "nombre": "",
+                "telefono": "",
+                "correo": "",
+                "pago": 0
+            }
+    print(f"\n✅ Reinicio de venta")
+    guardar_datos(datos)
+
+
 # Cargar el archivo JSON o crearlo si no existe
 def cargar_datos():
     try:
@@ -113,6 +128,7 @@ def mostrar_menu():
     print("7. Consultar información de un número")
     print("8. Venta masiva de números")
     print("9. Anular boletas por número")
+    print("10. Reiniciar venta")
 
 
 # Mostrar números disponibles
@@ -242,6 +258,8 @@ def main():
             venta_por_lista(datos)
         elif opcion == '9':
             anular_boletas(datos)
+        elif opcion == '10':
+            reanuadar_venta(datos)
         else:
             print("Opción no válida. Intente de nuevo.")
 

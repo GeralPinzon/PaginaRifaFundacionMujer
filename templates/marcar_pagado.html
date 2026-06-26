@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<div class="row justify-content-center">
+
+    <div class="col-md-6">
+
+        <div class="card shadow border-0">
+
+            <div class="card-header bg-success text-white">
+
+                <h3 class="mb-0">
+                    💰 Marcar Boleta como Pagada
+                </h3>
+
+            </div>
+
+            <div class="card-body">
+
+                {% if mensaje %}
+
+                <div class="alert
+                    {% if '✅' in mensaje %}
+                        alert-success
+                    {% elif '⚠️' in mensaje %}
+                        alert-warning
+                    {% else %}
+                        alert-danger
+                    {% endif %}">
+
+                    {{ mensaje }}
+
+                </div>
+
+                {% endif %}
+
+                <form method="POST">
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Número de Boleta
+                        </label>
+
+                        <input
+                            type="text"
+                            name="numero"
+                            class="form-control"
+                            placeholder="Ej: 001"
+                            required>
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="btn btn-success">
+
+                        ✅ Marcar Pagado
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
