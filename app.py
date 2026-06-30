@@ -49,7 +49,7 @@ def inicio():
     recaudado = pagados * VALOR_BOLETA
     pendiente_cobro = pendientes * VALOR_BOLETA
 
-    porcentaje = round((vendidos / 999) * 100, 1)
+    porcentaje = round((vendidos / 500) * 100, 1)
 
     return render_template(
         'index.html',
